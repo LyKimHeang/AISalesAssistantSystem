@@ -1,0 +1,13 @@
+<h1>Edit Product</h1>
+
+<form method="POST" action="/update/{{ product[0] }}">
+
+    <input type="text" name="name" value="{{ product[1] }}" required><br><br>
+
+    <input type="number" name="stock" value="{{ product[2] }}" required><br><br>
+
+    <input type="number" name="price" value="{{ product[3] }}" required><br><br>
+
+    <button type="submit">Update</button>
+
+</form>
