@@ -2,6 +2,7 @@
 
 <h2>Add Product</h2>
 
+
 <form method="POST" action="/add">
     <input type="text" name="name" placeholder="Name" required><br><br>
     <input type="number" name="stock" placeholder="Stock" required><br><br>
@@ -21,7 +22,7 @@
         <th>Price</th>
         <th>Actions</th>
     </tr>
-
+    
     {% for p in products %}
     <tr>
         <td>{{ p[0] }}</td>
@@ -34,5 +35,8 @@
         </td>
     </tr>
     {% endfor %}
-
+    
 </table>
+
+
+<a href="/logout">Logout</a>
