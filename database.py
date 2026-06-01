@@ -1,4 +1,5 @@
 import sqlite3
+import re
 
 from werkzeug.security import (
     generate_password_hash,
@@ -116,23 +117,37 @@ def get_all_products():
 
     return products
 
-def search_product(product_name):
+def search_product(query):
 
     conn = get_connection()
     cursor = conn.cursor()
 
+    # 1st try: search the full query as-is
     cursor.execute(
-        """
-        SELECT * FROM products
-        WHERE LOWER(name) LIKE LOWER(?)
-        """,
-        (f"%{product_name}%",)
+        "SELECT * FROM products WHERE LOWER(name) LIKE LOWER(?)",
+        (f"%{query}%",)
     )
-
     product = cursor.fetchone()
 
-    conn.close()
+    # 2nd try: if no match, split into words and try each one
+    # This handles full sentences like "do you have laptop?"
+    if not product:
+        words = query.split()
+        for word in words:
+            # Strip punctuation (removes "?" "!" "." etc.)
+            clean_word = re.sub(r'[^\w]', '', word)
+            # Skip very short words like "do", "a", "is", "the"
+            if len(clean_word) <= 3:
+                continue
+            cursor.execute(
+                "SELECT * FROM products WHERE LOWER(name) LIKE LOWER(?)",
+                (f"%{clean_word}%",)
+            )
+            product = cursor.fetchone()
+            if product:
+                break
 
+    conn.close()
     return product
 
 def add_product(name, stock, price):
@@ -196,7 +211,38 @@ def update_product(product_id, name, stock, price):
 
     conn.commit()
     conn.close()
-    
+
+# ── NEW: save one chat exchange ────────────────────────────────────────────────
+def save_chat_history(question, ai_response, platform="website"):
+    """Save a customer question and the AI reply to the database."""
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT INTO chat_history(question, ai_response, platform)
+    VALUES (?, ?, ?)
+    """, (question, ai_response, platform))
+
+    conn.commit()
+    conn.close()
+
+# ── NEW: retrieve all chat history (for admin view) ───────────────────────────
+def get_all_chat_history():
+    """Return all chat history rows, newest first."""
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM chat_history ORDER BY timestamp DESC"
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return rows
+
 def initialize_database():
 
     conn = get_connection()
@@ -205,20 +251,31 @@ def initialize_database():
     # Users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        email    TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        role TEXT NOT NULL
+        role     TEXT NOT NULL
     )
     """)
 
     # Products table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS products(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        id    INTEGER PRIMARY KEY AUTOINCREMENT,
+        name  TEXT    NOT NULL,
         stock INTEGER NOT NULL,
-        price REAL NOT NULL
+        price REAL    NOT NULL
+    )
+    """)
+
+    # ── NEW: Chat history table ────────────────────────────────────────────────
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS chat_history(
+        id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+        question    TEXT     NOT NULL,
+        ai_response TEXT     NOT NULL,
+        platform    TEXT     NOT NULL DEFAULT 'website',
+        timestamp   DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
