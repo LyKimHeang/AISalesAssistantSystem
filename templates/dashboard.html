@@ -1,5 +1,325 @@
-<h1>Buyer Dashboard</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard – AI Sales Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
 
-<p>Welcome Buyer</p>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            font-family: system-ui, sans-serif;
+        }
 
-<a href="/logout">Logout</a>
+        /* ── Overall layout: top / middle / footer stacked ── */
+        .app-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ── TOP ── */
+        .top-bar {
+            flex-shrink: 0;
+            background: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .user-avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 700; flex-shrink: 0;
+        }
+        .top-bar .info { flex: 1; }
+        .top-bar .info h6 { margin: 0; font-size: 15px; }
+        .top-bar .info small { color: #6c757d; }
+
+        /* ── MIDDLE ── */
+        .middle-section {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* Left panel – resizable via drag handle */
+        .left-panel {
+            width: 360px;
+            min-width: 180px;
+            max-width: 65%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Drag handle between left and right */
+        .drag-handle {
+            width: 5px;
+            cursor: col-resize;
+            background: #dee2e6;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .drag-handle:hover, .drag-handle.dragging {
+            background: #0d6efd;
+        }
+
+        /* Right panel */
+        .right-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #fff;
+        }
+
+        /* Product card image placeholder */
+        .product-img {
+            height: 120px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px;
+            background: #e9ecef;
+            border-radius: 6px 6px 0 0;
+        }
+
+        /* Chat history item */
+        .history-item {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        .history-item .q { color: #212529; margin-bottom: 4px; }
+        .history-item .a { color: #495057; }
+        .history-item .ts { color: #adb5bd; font-size: 11px; margin-bottom: 6px; }
+
+        /* ── FOOTER CHAT ── */
+        .chat-footer {
+            flex-shrink: 0;
+            min-height: 130px;
+            max-height: 45vh;
+            resize: vertical;
+            overflow: auto;
+            border-top: 2px solid #dee2e6;
+            background: #fff;
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Response display inside footer */
+        .chat-response {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .chat-response .q-bubble {
+            background: #e9ecef;
+            border-radius: 8px;
+            padding: 6px 12px;
+            display: inline-block;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .chat-response .a-bubble {
+            background: #0d6efd;
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 13px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 3px; }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+
+    <!-- ══════════════════════════════════════════
+         TOP: User account info
+    ══════════════════════════════════════════ -->
+    <div class="top-bar">
+        <div class="user-avatar">
+            {{ session.get('email', 'U')[0].upper() }}
+        </div>
+        <div class="info">
+            <h6>{{ session.get('email', 'User') }}</h6>
+            <small>
+                Role:
+                <span class="badge bg-primary" style="font-size:11px;">
+                    {{ session.get('role', 'buyer') }}
+                </span>
+            </small>
+        </div>
+        <div class="d-flex gap-2 ms-auto">
+            {% if session.get('role') == 'seller' %}
+            <a href="/admin" class="btn btn-sm btn-outline-primary">Admin Panel</a>
+            {% endif %}
+            <a href="/logout" class="btn btn-sm btn-outline-danger">Logout</a>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         MIDDLE: Left (history) + Right (products)
+    ══════════════════════════════════════════ -->
+    <div class="middle-section">
+
+        <!-- LEFT: Chat history -->
+        <div class="left-panel" id="left-panel">
+            <p class="fw-semibold mb-3" style="font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:#6c757d;">
+                Chat History
+            </p>
+
+            {% if chat_history %}
+                {% for item in chat_history %}
+                <div class="history-item">
+                    <div class="ts">{{ item[4] }}</div>
+                    <div class="q">
+                        <strong>Q:</strong> {{ item[1] }}
+                    </div>
+                    <div class="a">
+                        <strong>A:</strong> {{ item[2] }}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted small">No history yet. Ask a question below!</p>
+            {% endif %}
+        </div>
+
+        <!-- DRAG HANDLE -->
+        <div class="drag-handle" id="drag-handle"></div>
+
+        <!-- RIGHT: Product cards -->
+        <div class="right-panel" id="right-panel">
+            <p class="fw-semibold mb-3" style="font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:#6c757d;">
+                Products
+            </p>
+
+            {% if products %}
+            <div class="row g-3">
+                {% for product in products %}
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="product-img">
+                            {% set icons = ['📱','💻','🖱️','⌨️','🖥️','🎧','📷','🔋'] %}
+                            {{ icons[loop.index0 % icons|length] }}
+                        </div>
+                        <div class="card-body p-3">
+                            <h6 class="card-title mb-1">{{ product[1] }}</h6>
+                            <p class="mb-1 text-muted small">
+                                Stock:
+                                {% if product[2] > 5 %}
+                                    <span class="text-success fw-semibold">{{ product[2] }} available</span>
+                                {% elif product[2] > 0 %}
+                                    <span class="text-warning fw-semibold">{{ product[2] }} left</span>
+                                {% else %}
+                                    <span class="text-danger fw-semibold">Out of stock</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-0 fw-bold text-primary">${{ "%.2f"|format(product[3]) }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+                <p class="text-muted small">No products available yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         FOOTER: Chat box (drag top edge to resize)
+    ══════════════════════════════════════════ -->
+    <div class="chat-footer" id="chat-footer">
+
+        <!-- Response display -->
+        <div class="chat-response" id="chat-response">
+            {% if user_question %}
+            <div class="mb-2">
+                <span class="q-bubble">{{ user_question }}</span>
+            </div>
+            <div>
+                <span class="a-bubble">{{ ai_response }}</span>
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0" style="line-height:2;">
+                Ask anything about our products — type below and press Send.
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Input form -->
+        <form method="POST" class="d-flex gap-2 flex-shrink-0">
+            <input
+                type="text"
+                name="product"
+                class="form-control form-control-sm"
+                placeholder="Ask about a product, e.g. Do you have a laptop?"
+                value="{{ user_question or '' }}"
+                required autofocus>
+            <button class="btn btn-primary btn-sm px-4" type="submit">Send</button>
+        </form>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JavaScript: drag handle to resize panels
+══════════════════════════════════════════ -->
+<script>
+    const handle    = document.getElementById('drag-handle');
+    const leftPanel = document.getElementById('left-panel');
+    const middle    = document.querySelector('.middle-section');
+    let dragging    = false;
+
+    handle.addEventListener('mousedown', (e) => {
+        dragging = true;
+        handle.classList.add('dragging');
+        document.body.style.userSelect = 'none';   // stop text selection while dragging
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const rect     = middle.getBoundingClientRect();
+        const newWidth = e.clientX - rect.left;
+        const min      = 180;
+        const max      = rect.width * 0.65;
+        if (newWidth >= min && newWidth <= max) {
+            leftPanel.style.width = newWidth + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        dragging = false;
+        handle.classList.remove('dragging');
+        document.body.style.userSelect = '';
+    });
+
+    // Scroll chat history to the bottom so newest item is visible
+    const historyPanel = document.getElementById('left-panel');
+    historyPanel.scrollTop = 0;  // history is newest-first so start at top
+</script>
+
+</body>
+</html>

@@ -69,7 +69,8 @@ def login():
             )
 
         session['user_id'] = user[0]
-        session['role'] = user[3]
+        session['email']   = user[1]
+        session['role']    = user[3]
 
         if user[3] == 'seller':
             return redirect('/admin')
