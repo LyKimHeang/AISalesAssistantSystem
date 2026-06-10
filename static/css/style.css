@@ -1,0 +1,384 @@
+/* ============================================================
+   AI Sales Assistant — Global Stylesheet
+   Used by: admin.html, edit.html, index.html,
+            login.html, register.html, dashboard.html
+   ============================================================ */
+
+
+/* ── 1. Base ─────────────────────────────────────────────── */
+
+body {
+    background: #f4f5f7;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+
+/* ── 2. Shared Navbar ────────────────────────────────────── */
+
+.app-navbar {
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.app-navbar .brand {
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    color: #212529;
+}
+
+
+/* ── 3. Centered page (login / register / edit) ──────────── */
+
+.page-center {
+    min-height: calc(100vh - 60px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+}
+
+.form-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .07);
+}
+
+.form-card h4 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.form-card .subtitle {
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+
+/* ── 4. Product card (admin grid) ────────────────────────── */
+
+.product-card {
+    height: 380px;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+    transition: transform .15s, box-shadow .15s;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
+}
+
+/* 60% — image */
+.card-img-section {
+    height: 60%;
+    overflow: hidden;
+    background: #e9ecef;
+}
+
+.card-img-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.no-image {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #adb5bd;
+    font-size: 13px;
+    gap: 6px;
+}
+
+.no-image span { font-size: 36px; }
+
+/* 40% — info */
+.card-info-section {
+    height: 40%;
+    padding: 12px 14px 10px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.card-info-section .product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-info-section .price-stock {
+    font-size: 13px;
+    color: #495057;
+}
+
+.card-info-section .price-stock .price {
+    font-weight: 700;
+    color: #0d6efd;
+}
+
+/* Action buttons inside card */
+.card-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.card-actions .btn {
+    font-size: 12px;
+    padding: 4px 12px;
+    flex: 1;
+}
+
+
+/* ── 5. Stock indicator dots ─────────────────────────────── */
+
+.stock-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+}
+
+.stock-ok   { background: #198754; }
+.stock-low  { background: #fd7e14; }
+.stock-none { background: #dc3545; }
+
+
+/* ── 6. Category badge ───────────────────────────────────── */
+
+.cat-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #e9ecef;
+    color: #495057;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+
+/* ── 7. Home page chat (index.html) ──────────────────────── */
+
+.chat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .07);
+}
+
+.chat-response {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.chat-response .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #adb5bd;
+    margin-bottom: 4px;
+}
+
+.chat-response .question {
+    font-size: 14px;
+    color: #495057;
+    margin-bottom: 12px;
+}
+
+.chat-response .answer {
+    font-size: 14px;
+    color: #212529;
+}
+
+
+/* ── 8. Clickable product image (lightbox) ───────────────── */
+
+.card-img-section.has-image {
+    cursor: zoom-in;
+}
+
+.img-modal-body {
+    background: #000;
+    border-radius: 0 0 8px 8px;
+    text-align: center;
+    padding: 12px;
+}
+
+.img-modal-body img {
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+
+/* ── 9. Admin sidebar layout ─────────────────────────────── */
+
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 220px;
+    background: #212529;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+}
+
+.sidebar-brand {
+    padding: 20px 16px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.sidebar-user {
+    padding: 10px 16px 12px;
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 10px 0;
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: rgba(255,255,255,.6);
+    text-decoration: none;
+    font-size: 14px;
+    transition: background .15s, color .15s;
+    border-radius: 0;
+}
+
+.sidebar-nav a:hover {
+    background: rgba(255,255,255,.07);
+    color: #fff;
+}
+
+.sidebar-nav a.active {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.sidebar-footer {
+    padding: 14px 16px;
+    border-top: 1px solid rgba(255,255,255,.1);
+}
+
+.admin-main {
+    margin-left: 220px;
+    flex: 1;
+    background: #f4f5f7;
+    min-height: 100vh;
+    padding: 28px 32px;
+}
+
+.admin-page-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+/* ── 10. Stat cards (overview) ───────────────────────────── */
+
+.stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.stat-value {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #6c757d;
+    margin-top: 3px;
+}
+
+/* ── 11. Admin tables ────────────────────────────────────── */
+
+.admin-table-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    overflow: hidden;
+}
+
+.admin-table-card .table {
+    margin: 0;
+    font-size: 14px;
+}
+
+.admin-table-card .table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6c757d;
+    border-bottom: 1px solid #e9ecef;
+    padding: 12px 16px;
+}
+
+.admin-table-card .table td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    border-color: #f0f0f0;
+}
+
+.platform-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.platform-website  { background: #cfe2ff; color: #0a58ca; }
+.platform-telegram { background: #d1ecf1; color: #0c6068; }

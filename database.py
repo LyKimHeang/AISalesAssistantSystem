@@ -1,10 +1,6 @@
 import sqlite3
 import re
-
-from werkzeug.security import (
-    generate_password_hash,
-    check_password_hash
-)
+from werkzeug.security import generate_password_hash, check_password_hash
 
 DATABASE = "store.db"
 
@@ -12,136 +8,87 @@ DATABASE = "store.db"
 def get_connection():
     return sqlite3.connect(DATABASE)
 
-def create_default_admin():
 
+# ── Auth ───────────────────────────────────────────────────────────────────────
+
+def create_default_admin():
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT * FROM users WHERE role='seller'"
-    )
-
-    admin = cursor.fetchone()
-
-    if not admin:
-
-        hashed_password = generate_password_hash(
-            "admin123"
+    cursor.execute("SELECT * FROM users WHERE role='seller'")
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO users(email, password, role) VALUES (?, ?, ?)",
+            ("admin@store.com", generate_password_hash("admin123"), "seller")
         )
-
-        cursor.execute("""
-        INSERT INTO users(
-            email,
-            password,
-            role
-        )
-        VALUES (?, ?, ?)
-        """, (
-            "admin@store.com",
-            hashed_password,
-            "seller"
-        ))
-
         conn.commit()
-
     conn.close()
 
 def create_user(email, password):
-
-    hashed_password = generate_password_hash(
-        password
-    )
-
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute("""
-    INSERT INTO users(
-        email,
-        password,
-        role
+    cursor.execute(
+        "INSERT INTO users(email, password, role) VALUES (?, ?, ?)",
+        (email, generate_password_hash(password), "buyer")
     )
-    VALUES (?, ?, ?)
-    """, (
-        email,
-        hashed_password,
-        "buyer"
-    ))
-
     conn.commit()
     conn.close()
-    
-def get_user_by_email(email):
 
+def get_user_by_email(email):
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT * FROM users WHERE email=?",
-        (email,)
-    )
-
+    cursor.execute("SELECT * FROM users WHERE email=?", (email,))
     user = cursor.fetchone()
-
     conn.close()
-
     return user
 
 def verify_user(email, password):
-
     user = get_user_by_email(email)
-
     if not user:
         return None
-
-    stored_password = user[2]
-
-    if check_password_hash(
-        stored_password,
-        password
-    ):
+    if check_password_hash(user[2], password):
         return user
-
     return None
 
-def get_all_products():
 
+# ── Products ───────────────────────────────────────────────────────────────────
+# Column order: id | name | category | stock | price | image_url
+
+def get_all_products():
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM products")
-
+    cursor.execute("SELECT * FROM products ORDER BY name")
     products = cursor.fetchall()
-
     conn.close()
-
     return products
 
-def search_product(query):
+def get_product_by_id(product_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM products WHERE id=?", (product_id,))
+    product = cursor.fetchone()
+    conn.close()
+    return product
 
+def search_product(query):
     conn = get_connection()
     cursor = conn.cursor()
 
-    # 1st try: search the full query as-is
+    # 1st try: full phrase
     cursor.execute(
         "SELECT * FROM products WHERE LOWER(name) LIKE LOWER(?)",
         (f"%{query}%",)
     )
     product = cursor.fetchone()
 
-    # 2nd try: if no match, split into words and try each one
-    # This handles full sentences like "do you have laptop?"
+    # 2nd try: word by word
     if not product:
-        words = query.split()
-        for word in words:
-            # Strip punctuation (removes "?" "!" "." etc.)
-            clean_word = re.sub(r'[^\w]', '', word)
-            # Skip very short words like "do", "a", "is", "the"
-            if len(clean_word) <= 3:
+        for word in query.split():
+            clean = re.sub(r'[^\w]', '', word)
+            if len(clean) <= 3:
                 continue
             cursor.execute(
                 "SELECT * FROM products WHERE LOWER(name) LIKE LOWER(?)",
-                (f"%{clean_word}%",)
+                (f"%{clean}%",)
             )
             product = cursor.fetchone()
             if product:
@@ -150,125 +97,182 @@ def search_product(query):
     conn.close()
     return product
 
-def add_product(name, stock, price):
-
+def add_product(name, category, stock, price, image_url=None, description=None):
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
-        """
-        INSERT INTO products(name, stock, price)
-        VALUES (?, ?, ?)
-        """,
-        (name, stock, price)
+        "INSERT INTO products(name, category, stock, price, image_url, description) VALUES (?, ?, ?, ?, ?, ?)",
+        (name, category, int(stock), float(price), image_url, description)
     )
+    conn.commit()
+    conn.close()
 
+def update_product(product_id, name, category, stock, price, image_url=None, description=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    if image_url is not None:
+        # New image uploaded — update image too
+        cursor.execute(
+            "UPDATE products SET name=?, category=?, stock=?, price=?, image_url=?, description=? WHERE id=?",
+            (name, category, int(stock), float(price), image_url, description, product_id)
+        )
+    else:
+        # No new image — keep existing image_url, update everything else including description
+        cursor.execute(
+            "UPDATE products SET name=?, category=?, stock=?, price=?, description=? WHERE id=?",
+            (name, category, int(stock), float(price), description, product_id)
+        )
     conn.commit()
     conn.close()
 
 def delete_product(product_id):
-
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute(
-        "DELETE FROM products WHERE id = ?",
-        (product_id,)
-    )
-
+    cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
     conn.commit()
     conn.close()
 
-def get_product_by_id(product_id):
 
-    conn = get_connection()
-    cursor = conn.cursor()
+# ── Chat history ───────────────────────────────────────────────────────────────
 
-    cursor.execute(
-        "SELECT * FROM products WHERE id = ?",
-        (product_id,)
-    )
-
-    product = cursor.fetchone()
-
-    conn.close()
-
-    return product
-
-def update_product(product_id, name, stock, price):
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        """
-        UPDATE products
-        SET name=?, stock=?, price=?
-        WHERE id=?
-        """,
-        (name, stock, price, product_id)
-    )
-
-    conn.commit()
-    conn.close()
-
-# ── NEW: save one chat exchange ────────────────────────────────────────────────
 def save_chat_history(question, ai_response, platform="website"):
-    """Save a customer question and the AI reply to the database."""
-
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute("""
-    INSERT INTO chat_history(question, ai_response, platform)
-    VALUES (?, ?, ?)
-    """, (question, ai_response, platform))
-
+    cursor.execute(
+        "INSERT INTO chat_history(question, ai_response, platform) VALUES (?, ?, ?)",
+        (question, ai_response, platform)
+    )
     conn.commit()
     conn.close()
 
-# ── NEW: retrieve all chat history (for admin view) ───────────────────────────
 def get_all_chat_history():
-    """Return all chat history rows, newest first."""
-
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT * FROM chat_history ORDER BY timestamp DESC"
-    )
-
+    cursor.execute("SELECT * FROM chat_history ORDER BY timestamp DESC")
     rows = cursor.fetchall()
     conn.close()
-
     return rows
 
-def initialize_database():
 
+def get_all_buyers():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, email, role FROM users WHERE role='buyer' ORDER BY id DESC")
+    buyers = cursor.fetchall()
+    conn.close()
+    return buyers
+
+def get_stats():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Users table
+    cursor.execute("SELECT COUNT(*) FROM products")
+    total_products = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM categories")
+    total_categories = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM users WHERE role='buyer'")
+    total_buyers = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM chat_history")
+    total_chats = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM chat_history WHERE platform='website'")
+    web_chats = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM chat_history WHERE platform='telegram'")
+    tg_chats = cursor.fetchone()[0]
+
+    cursor.execute("SELECT * FROM chat_history ORDER BY timestamp DESC LIMIT 5")
+    recent_chats = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM products WHERE stock <= 5 ORDER BY stock ASC")
+    low_stock = cursor.fetchall()
+
+    conn.close()
+
+    return {
+        'total_products'  : total_products,
+        'total_categories': total_categories,
+        'total_buyers'    : total_buyers,
+        'total_chats'     : total_chats,
+        'web_chats'       : web_chats,
+        'tg_chats'        : tg_chats,
+        'recent_chats'    : recent_chats,
+        'low_stock'       : low_stock,
+    }
+
+
+# ── Categories ─────────────────────────────────────────────────────────────────
+
+def get_all_categories():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM categories ORDER BY name")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def add_category(name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO categories(name) VALUES (?)", (name,))
+    conn.commit()
+    conn.close()
+
+def delete_category(category_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM categories WHERE id=?", (category_id,))
+    conn.commit()
+    conn.close()
+
+def update_category(category_id, new_name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE categories SET name=? WHERE id=?", (new_name, category_id))
+    conn.commit()
+    conn.close()
+
+
+# ── Database init ──────────────────────────────────────────────────────────────
+
+DEFAULT_CATEGORIES = [
+    'Laptop', 'Desktop', 'Monitor', 'Keyboard', 'Mouse',
+    'Headset & Audio', 'Storage', 'Networking',
+    'Mobile Accessories', 'Components', 'Cables & Adapters', 'Other'
+]
+
+def initialize_database():
+    conn = get_connection()
+    cursor = conn.cursor()
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
         email    TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         role     TEXT NOT NULL
-    )
-    """)
+    )""")
 
-    # Products table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS products(
-        id    INTEGER PRIMARY KEY AUTOINCREMENT,
-        name  TEXT    NOT NULL,
-        stock INTEGER NOT NULL,
-        price REAL    NOT NULL
-    )
-    """)
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT    NOT NULL,
+        category    TEXT    NOT NULL DEFAULT 'Other',
+        stock       INTEGER NOT NULL,
+        price       REAL    NOT NULL,
+        image_url   TEXT,
+        description TEXT
+    )""")
 
-    # ── NEW: Chat history table ────────────────────────────────────────────────
+    # Add description to existing databases that don't have it yet
+    try:
+        cursor.execute("ALTER TABLE products ADD COLUMN description TEXT")
+    except Exception:
+        pass  # column already exists — safe to ignore
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS chat_history(
         id          INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -276,8 +280,17 @@ def initialize_database():
         ai_response TEXT     NOT NULL,
         platform    TEXT     NOT NULL DEFAULT 'website',
         timestamp   DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+    )""")
+
+    # Categories table — pre-populated with defaults on first run
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS categories(
+        id   INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL
+    )""")
+
+    for cat in DEFAULT_CATEGORIES:
+        cursor.execute("INSERT OR IGNORE INTO categories(name) VALUES (?)", (cat,))
 
     conn.commit()
     conn.close()

@@ -1,0 +1,244 @@
+{% extends 'base_admin.html' %}
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <p class="admin-page-title mb-0">📦 Products</p>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm"
+                data-bs-toggle="modal" data-bs-target="#catModal">
+            🏷️ Categories
+        </button>
+        <button class="btn btn-primary btn-sm"
+                data-bs-toggle="modal" data-bs-target="#addModal">
+            + Add Product
+        </button>
+    </div>
+</div>
+
+{% if products %}
+<p class="text-muted small mb-3">{{ products|length }} product(s)</p>
+<div class="row g-3">
+    {% for p in products %}
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+        <div class="product-card">
+            <div class="card-img-section {% if p[5] %}has-image{% endif %}"
+                 {% if p[5] %}onclick="viewImage('/static/uploads/{{ p[5] }}','{{ p[1] }}')"{% endif %}>
+                {% if p[5] %}
+                    <img src="/static/uploads/{{ p[5] }}" alt="{{ p[1] }}">
+                {% else %}
+                    <div class="no-image"><span>📦</span><small>No image</small></div>
+                {% endif %}
+            </div>
+            <div class="card-info-section">
+                <div>
+                    <span class="cat-badge">{{ p[2] }}</span>
+                    <p class="product-name">{{ p[1] }}</p>
+                    <div class="price-stock">
+                        <span class="price">${{ "%.2f"|format(p[4]) }}</span>
+                        &nbsp;·&nbsp;
+                        <span class="stock-dot
+                            {% if p[3] > 5 %}stock-ok
+                            {% elif p[3] > 0 %}stock-low
+                            {% else %}stock-none{% endif %}">
+                        </span>
+                        {{ p[3] }} in stock
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <a href="/edit/{{ p[0] }}" class="btn btn-outline-secondary">Edit</a>
+                    <button class="btn btn-outline-danger"
+                            onclick="confirmDelete({{ p[0] }},'{{ p[1] }}')">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+    <div style="font-size:48px;">📦</div>
+    <p class="mt-2">No products yet. Add your first one!</p>
+</div>
+{% endif %}
+{% endblock %}
+
+
+{% block scripts %}
+<!-- ══ Categories Modal ══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="catModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🏷️ Manage Categories</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="/categories/add" class="d-flex gap-2 mb-4">
+                    <input type="text" name="category_name" class="form-control form-control-sm"
+                           placeholder="New category name..." required>
+                    <button type="submit" class="btn btn-primary btn-sm px-3">Add</button>
+                </form>
+                {% if categories %}
+                <div class="d-flex flex-column gap-2">
+                    {% for cat in categories %}
+                    <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:#f8f9fa;">
+                        <form method="POST" action="/categories/update/{{ cat[0] }}"
+                              class="d-flex gap-2 flex-grow-1 mb-0">
+                            <input type="text" name="new_name" value="{{ cat[1] }}"
+                                   class="form-control form-control-sm">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Rename</button>
+                        </form>
+                        <button class="btn btn-outline-danger btn-sm flex-shrink-0"
+                                onclick="confirmCatDelete({{ cat[0] }},'{{ cat[1] }}')">🗑</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted small">No categories yet.</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="catDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <p class="fw-semibold mb-1">Delete category?</p>
+                <p id="catDeleteName" class="text-muted small mb-1"></p>
+                <p class="text-muted small mb-3">Existing products keep their label.</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <a id="catDeleteBtn" href="#" class="btn btn-danger btn-sm">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Add Product Modal ═════════════════════════════════════════════════════ -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/add" enctype="multipart/form-data">
+                <div class="modal-body d-flex flex-column gap-3">
+                    <div>
+                        <label class="form-label">Product Name</label>
+                        <input type="text" name="name" class="form-control"
+                               placeholder="e.g. Mechanical Keyboard" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Category</label>
+                        <select name="category" class="form-select" required>
+                            <option value="" disabled selected>Select a category</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat[1] }}">{{ cat[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Description <span class="text-muted">(optional)</span></label>
+                        <textarea name="description" class="form-control" rows="3"
+                                  placeholder="Specs, features, compatibility..."></textarea>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col">
+                            <label class="form-label">Stock</label>
+                            <input type="number" name="stock" class="form-control"
+                                   placeholder="0" min="0" required>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Price ($)</label>
+                            <input type="number" name="price" class="form-control"
+                                   placeholder="0.00" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Product Image <span class="text-muted">(optional)</span></label>
+                        <input type="file" name="image" class="form-control"
+                               accept=".png,.jpg,.jpeg,.gif,.webp"
+                               onchange="previewImage(this,'addPreview')">
+                        <img id="addPreview" class="mt-2 rounded"
+                             style="display:none;max-height:120px;object-fit:cover;" alt="Preview">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Image Lightbox ════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="imgModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0" style="background:transparent;">
+            <div class="modal-header border-0 pb-1">
+                <h6 class="modal-title text-white fw-semibold" id="imgModalTitle"></h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="img-modal-body">
+                <img id="imgModalSrc" src="" alt="">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Delete Product Confirm ════════════════════════════════════════════════ -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div style="font-size:32px;">🗑️</div>
+                <p class="mt-2 mb-1 fw-semibold">Delete product?</p>
+                <p id="deleteProductName" class="text-muted small mb-3"></p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <a id="deleteConfirmBtn" href="#" class="btn btn-danger btn-sm">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('modal') === 'categories') {
+        new bootstrap.Modal(document.getElementById('catModal')).show();
+    }
+    function previewImage(input, previewId) {
+        const preview = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    function viewImage(src, name) {
+        document.getElementById('imgModalSrc').src = src;
+        document.getElementById('imgModalTitle').textContent = name;
+        new bootstrap.Modal(document.getElementById('imgModal')).show();
+    }
+    function confirmDelete(id, name) {
+        document.getElementById('deleteProductName').textContent = name;
+        document.getElementById('deleteConfirmBtn').href = '/delete/' + id;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+    function confirmCatDelete(id, name) {
+        document.getElementById('catDeleteName').textContent = name;
+        document.getElementById('catDeleteBtn').href = '/categories/delete/' + id;
+        new bootstrap.Modal(document.getElementById('catDeleteModal')).show();
+    }
+</script>
+{% endblock %}

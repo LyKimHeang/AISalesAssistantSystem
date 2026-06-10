@@ -1,42 +1,130 @@
-<h1>Admin Panel</h1>
+{% extends 'base_admin.html' %}
+{% block title %}Overview{% endblock %}
 
-<h2>Add Product</h2>
+{% block content %}
+<p class="admin-page-title">📊 Overview</p>
 
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <span class="stat-icon">📦</span>
+            <div>
+                <div class="stat-value">{{ stats.total_products }}</div>
+                <div class="stat-label">Total Products</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <span class="stat-icon">🏷️</span>
+            <div>
+                <div class="stat-value">{{ stats.total_categories }}</div>
+                <div class="stat-label">Categories</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <span class="stat-icon">👥</span>
+            <div>
+                <div class="stat-value">{{ stats.total_buyers }}</div>
+                <div class="stat-label">Registered Buyers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <span class="stat-icon">💬</span>
+            <div>
+                <div class="stat-value">{{ stats.total_chats }}</div>
+                <div class="stat-label">
+                    Total Conversations
+                    <span class="d-block" style="font-size:11px;color:#adb5bd;">
+                        🌐 {{ stats.web_chats }} web · ✈️ {{ stats.tg_chats }} telegram
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<form method="POST" action="/add">
-    <input type="text" name="name" placeholder="Name" required><br><br>
-    <input type="number" name="stock" placeholder="Stock" required><br><br>
-    <input type="number" name="price" placeholder="Price" required><br><br>
-    <button type="submit">Add</button>
-</form>
+<div class="row g-4">
 
-<hr>
+    <!-- Recent conversations -->
+    <div class="col-lg-7">
+        <p class="fw-semibold mb-2" style="font-size:14px;">Recent Conversations</p>
+        <div class="admin-table-card">
+            {% if stats.recent_chats %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th>Platform</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in stats.recent_chats %}
+                    <tr>
+                        <td>{{ c[1][:60] }}{% if c[1]|length > 60 %}…{% endif %}</td>
+                        <td>
+                            <span class="platform-badge platform-{{ c[3] }}">
+                                {{ c[3] }}
+                            </span>
+                        </td>
+                        <td class="text-muted" style="font-size:12px;white-space:nowrap;">
+                            {{ c[4] }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted small p-3 mb-0">No conversations yet.</p>
+            {% endif %}
+        </div>
+        <a href="/admin/chats" class="text-primary small mt-2 d-inline-block">
+            View all conversations →
+        </a>
+    </div>
 
-<h2>Product List</h2>
+    <!-- Low stock alerts -->
+    <div class="col-lg-5">
+        <p class="fw-semibold mb-2" style="font-size:14px;">
+            ⚠️ Low Stock
+            <span class="text-muted fw-normal">(5 or fewer)</span>
+        </p>
+        <div class="admin-table-card">
+            {% if stats.low_stock %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in stats.low_stock %}
+                    <tr>
+                        <td>{{ p[1] }}</td>
+                        <td>
+                            <span class="fw-bold {{ 'text-danger' if p[3] == 0 else 'text-warning' }}">
+                                {{ p[3] }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted small p-3 mb-0">All products are well-stocked.</p>
+            {% endif %}
+        </div>
+        <a href="/admin/products" class="text-primary small mt-2 d-inline-block">
+            Manage products →
+        </a>
+    </div>
 
-<table border="1">
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Stock</th>
-        <th>Price</th>
-        <th>Actions</th>
-    </tr>
-    
-    {% for p in products %}
-    <tr>
-        <td>{{ p[0] }}</td>
-        <td>{{ p[1] }}</td>
-        <td>{{ p[2] }}</td>
-        <td>{{ p[3] }}</td>
-        <td>
-            <a href="/edit/{{ p[0] }}">Edit</a> |
-            <a href="/delete/{{ p[0] }}">Delete</a>
-        </td>
-    </tr>
-    {% endfor %}
-    
-</table>
-
-
-<a href="/logout">Logout</a>
+</div>
+{% endblock %}

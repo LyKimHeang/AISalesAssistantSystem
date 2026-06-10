@@ -1,0 +1,37 @@
+{% extends 'base_admin.html' %}
+{% block title %}Buyers{% endblock %}
+
+{% block content %}
+<p class="admin-page-title">👥 Buyers</p>
+
+<div class="admin-table-card">
+    {% if buyers %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width:60px;">#</th>
+                <th>Email</th>
+                <th style="width:100px;">Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in buyers %}
+            <!-- b: [0]id [1]email [2]role -->
+            <tr>
+                <td class="text-muted">{{ b[0] }}</td>
+                <td>{{ b[1] }}</td>
+                <td>
+                    <span class="badge bg-primary" style="font-size:11px;">{{ b[2] }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="px-3 py-2 text-muted small border-top">
+        {{ buyers|length }} registered buyer(s)
+    </div>
+    {% else %}
+    <p class="text-muted small p-3 mb-0">No buyers have registered yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -5,17 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Sales Assistant</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body class="bg-light">
+<body>
 
-<!-- Navbar -->
-<nav class="navbar navbar-light bg-white border-bottom px-4">
-    <span class="navbar-brand fw-bold">🛍️ AI Sales Assistant</span>
+<nav class="app-navbar">
+    <span class="brand">🛍️ AI Sales Assistant</span>
     <div class="d-flex gap-2">
         {% if session.get('role') %}
-            <span class="navbar-text me-2">
-                Logged in as <strong>{{ session.get('role') }}</strong>
-            </span>
+            <span class="text-muted small align-self-center">{{ session.get('role') }}</span>
             {% if session.get('role') == 'seller' %}
                 <a href="/admin" class="btn btn-sm btn-outline-primary">Admin Panel</a>
             {% else %}
@@ -29,40 +27,32 @@
     </div>
 </nav>
 
-<!-- Main content -->
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
 
             <h4 class="mb-1">Ask about a product</h4>
-            <p class="text-muted mb-4">Type your question below and our AI assistant will help you.</p>
+            <p class="text-muted mb-4">Type your question and our AI assistant will help you.</p>
 
-            <!-- Question form -->
-            <form method="POST" class="mb-4">
-                <div class="input-group">
-                    <input
-                        type="text"
-                        name="product"
-                        class="form-control"
-                        placeholder="e.g. Do you have a laptop in stock?"
-                        value="{{ user_question or '' }}"
-                        required autofocus>
-                    <button class="btn btn-primary" type="submit">Ask</button>
-                </div>
-            </form>
-
-            <!-- Response area (only shown after a question is asked) -->
             {% if user_question %}
-            <div class="card">
-                <div class="card-body">
-                    <p class="text-muted small mb-1">Your question</p>
-                    <p class="mb-3">{{ user_question }}</p>
-                    <hr>
-                    <p class="text-muted small mb-1">Assistant</p>
-                    <p class="mb-0">{{ ai_response }}</p>
-                </div>
+            <div class="chat-response mb-4">
+                <p class="label">Your question</p>
+                <p class="question">{{ user_question }}</p>
+                <p class="label">Assistant</p>
+                <p class="answer mb-0">{{ ai_response }}</p>
             </div>
             {% endif %}
+
+            <div class="chat-card">
+                <form method="POST">
+                    <div class="input-group">
+                        <input type="text" name="product" class="form-control"
+                               placeholder="e.g. Do you have a laptop in stock?"
+                               value="{{ user_question or '' }}" required autofocus>
+                        <button class="btn btn-primary" type="submit">Ask</button>
+                    </div>
+                </form>
+            </div>
 
         </div>
     </div>

@@ -1,0 +1,72 @@
+{% extends 'base_admin.html' %}
+{% block title %}Chat History{% endblock %}
+
+{% block content %}
+<p class="admin-page-title">💬 Chat History</p>
+
+<!-- Platform filter -->
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-sm btn-primary"   onclick="filterPlatform('all')">All</button>
+    <button class="btn btn-sm btn-outline-primary" onclick="filterPlatform('website')">🌐 Website</button>
+    <button class="btn btn-sm btn-outline-primary" onclick="filterPlatform('telegram')">✈️ Telegram</button>
+</div>
+
+<div class="admin-table-card">
+    {% if chats %}
+    <table class="table" id="chatTable">
+        <thead>
+            <tr>
+                <th style="width:120px;">Time</th>
+                <th style="width:90px;">Platform</th>
+                <th style="width:35%;">Question</th>
+                <th>AI Response</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in chats %}
+            <!-- c: [0]id [1]question [2]ai_response [3]platform [4]timestamp -->
+            <tr data-platform="{{ c[3] }}">
+                <td class="text-muted" style="font-size:12px;">{{ c[4] }}</td>
+                <td>
+                    <span class="platform-badge platform-{{ c[3] }}">{{ c[3] }}</span>
+                </td>
+                <td>{{ c[1] }}</td>
+                <td style="font-size:13px;color:#495057;">
+                    <span class="response-preview">
+                        {{ c[2][:120] }}{% if c[2]|length > 120 %}
+                        <span class="response-full d-none">{{ c[2][120:] }}</span>
+                        <a href="#" class="text-primary small ms-1 toggle-btn"
+                           onclick="toggleResponse(this); return false;">more</a>
+                        {% endif %}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted small p-3 mb-0">No conversations yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterPlatform(platform) {
+        document.querySelectorAll('#chatTable tbody tr').forEach(row => {
+            row.style.display =
+                (platform === 'all' || row.dataset.platform === platform) ? '' : 'none';
+        });
+    }
+    function toggleResponse(link) {
+        const full = link.previousElementSibling;
+        if (full.classList.contains('d-none')) {
+            full.classList.remove('d-none');
+            link.textContent = 'less';
+        } else {
+            full.classList.add('d-none');
+            link.textContent = 'more';
+        }
+    }
+</script>
+{% endblock %}
