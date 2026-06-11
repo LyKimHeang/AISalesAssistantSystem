@@ -13,43 +13,59 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-def get_ai_response(customer_question, product_result):
+def get_ai_response(customer_question, all_products, conversation_history=None):
+    """
+    Passes the full product catalog + conversation history to the AI
+    so it can recommend, compare, and remember context within a session.
+    """
 
-    # Column order: id[0] | name[1] | category[2] | stock[3] | price[4] | image_url[5] | description[6]
-    if product_result:
-        description = product_result[6] if len(product_result) > 6 and product_result[6] else None
-        product_info = (
-            f"Product Name : {product_result[1]}\n"
-            f"Category     : {product_result[2]}\n"
-            f"Stock        : {product_result[3]} units available\n"
-            f"Price        : ${product_result[4]:.2f}\n"
-        )
-        if description:
-            product_info += f"Description  : {description}"
+    # ── Build catalog context ──────────────────────────────────────────────────
+    # p: id[0] name[1] category[2] stock[3] price[4] image_url[5] description[6]
+    if all_products:
+        lines = []
+        for p in all_products:
+            stock_label = f"{p[3]} in stock" if p[3] > 0 else "OUT OF STOCK"
+            line = (f"• {p[1]}  |  Category: {p[2]}  |  "
+                    f"Price: ${p[4]:.2f}  |  {stock_label}")
+            if len(p) > 6 and p[6]:
+                line += f"\n  Info: {p[6]}"
+            lines.append(line)
+        catalog = "\n".join(lines)
     else:
-        product_info = "This product was not found in our inventory."
+        catalog = "No products available at this time."
 
-    system_prompt = """You are a friendly and helpful sales assistant for a tech accessories store.
-Your job is to answer customer questions about product availability and pricing.
-Always base your answer ONLY on the product information you are given.
-Keep your reply short (2-3 sentences), polite, and professional."""
+    system_prompt = f"""You are a friendly AI sales assistant for a tech accessories store.
+Help customers find products, make recommendations, compare items, and answer questions about the shop.
 
-    user_message = (
-        f"Customer question: \"{customer_question}\"\n\n"
-        f"Product information from our database:\n{product_info}\n\n"
-        f"Please answer the customer based on this information."
-    )
+Complete product catalog:
+{catalog}
+
+Guidelines:
+- Only recommend products that exist in the catalog above
+- If a product is out of stock, say so and suggest an in-stock alternative if one exists
+- For open questions like "what's good for gaming?" suggest relevant products from the catalog
+- Keep replies friendly and concise (2-4 sentences max)
+- If asked something unrelated to shopping or tech, politely redirect back to the shop
+- Use conversation history to understand follow-up questions (e.g. "how much is it?" refers to the last product discussed)"""
+
+    # ── Build messages: system + history (last 10) + current question ──────────
+    messages = [{"role": "system", "content": system_prompt}]
+
+    if conversation_history:
+        for msg in conversation_history[-10:]:
+            if msg.get('role') in ('user', 'assistant') and msg.get('content'):
+                messages.append({"role": msg['role'], "content": str(msg['content'])})
+
+    messages.append({"role": "user", "content": customer_question})
 
     try:
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user",   "content": user_message}
-            ],
-            max_tokens=200,
+            messages=messages,
+            max_tokens=300,
             temperature=0.7
         )
         return response.choices[0].message.content
+
     except Exception as e:
-        return f"Sorry, I'm having trouble answering right now. Please try again later. (Error: {e})"
+        return f"Sorry, I'm having trouble right now. Please try again later. (Error: {e})"

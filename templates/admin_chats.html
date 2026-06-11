@@ -18,17 +18,30 @@
             <tr>
                 <th style="width:120px;">Time</th>
                 <th style="width:90px;">Platform</th>
+                <th style="width:80px;">Session</th>
                 <th style="width:35%;">Question</th>
                 <th>AI Response</th>
             </tr>
         </thead>
         <tbody>
+            {% set ns = namespace(prev_session=None) %}
             {% for c in chats %}
-            <!-- c: [0]id [1]question [2]ai_response [3]platform [4]timestamp -->
+            <!-- c: [0]id [1]question [2]ai_response [3]platform [4]session_id [5]timestamp -->
+            {% if c[4] != ns.prev_session %}
+                {% set ns.prev_session = c[4] %}
+                <tr style="background:#f0f4ff;">
+                    <td colspan="5" style="font-size:11px;color:#6c757d;padding:6px 16px;">
+                        ── New session: {{ c[4] or 'legacy' }} ──
+                    </td>
+                </tr>
+            {% endif %}
             <tr data-platform="{{ c[3] }}">
-                <td class="text-muted" style="font-size:12px;">{{ c[4] }}</td>
+                <td class="text-muted" style="font-size:12px;">{{ c[5] }}</td>
                 <td>
                     <span class="platform-badge platform-{{ c[3] }}">{{ c[3] }}</span>
+                </td>
+                <td class="text-muted" style="font-size:11px;">
+                    {{ (c[4] or '')[-6:] or '—' }}
                 </td>
                 <td>{{ c[1] }}</td>
                 <td style="font-size:13px;color:#495057;">

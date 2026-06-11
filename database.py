@@ -135,12 +135,12 @@ def delete_product(product_id):
 
 # ── Chat history ───────────────────────────────────────────────────────────────
 
-def save_chat_history(question, ai_response, platform="website"):
+def save_chat_history(question, ai_response, platform="website", session_id=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO chat_history(question, ai_response, platform) VALUES (?, ?, ?)",
-        (question, ai_response, platform)
+        "INSERT INTO chat_history(question, ai_response, platform, session_id) VALUES (?, ?, ?, ?)",
+        (question, ai_response, platform, session_id)
     )
     conn.commit()
     conn.close()
@@ -148,7 +148,12 @@ def save_chat_history(question, ai_response, platform="website"):
 def get_all_chat_history():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM chat_history ORDER BY timestamp DESC")
+    # Returns: id[0] question[1] ai_response[2] platform[3] session_id[4] timestamp[5]
+    cursor.execute("""
+        SELECT id, question, ai_response, platform, session_id, timestamp
+        FROM chat_history
+        ORDER BY session_id, timestamp DESC
+    """)
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -184,7 +189,10 @@ def get_stats():
     cursor.execute("SELECT COUNT(*) FROM chat_history WHERE platform='telegram'")
     tg_chats = cursor.fetchone()[0]
 
-    cursor.execute("SELECT * FROM chat_history ORDER BY timestamp DESC LIMIT 5")
+    cursor.execute("""
+        SELECT id, question, ai_response, platform, session_id, timestamp
+        FROM chat_history ORDER BY timestamp DESC LIMIT 5
+    """)
     recent_chats = cursor.fetchall()
 
     cursor.execute("SELECT * FROM products WHERE stock <= 5 ORDER BY stock ASC")
@@ -279,8 +287,15 @@ def initialize_database():
         question    TEXT     NOT NULL,
         ai_response TEXT     NOT NULL,
         platform    TEXT     NOT NULL DEFAULT 'website',
+        session_id  TEXT,
         timestamp   DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
+
+    # Add session_id to existing databases
+    try:
+        cursor.execute("ALTER TABLE chat_history ADD COLUMN session_id TEXT")
+    except Exception:
+        pass  # already exists
 
     # Categories table — pre-populated with defaults on first run
     cursor.execute("""

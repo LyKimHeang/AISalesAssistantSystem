@@ -66,6 +66,7 @@
                 </thead>
                 <tbody>
                     {% for c in stats.recent_chats %}
+                    <!-- c: id[0] question[1] ai_response[2] platform[3] session_id[4] timestamp[5] -->
                     <tr>
                         <td>{{ c[1][:60] }}{% if c[1]|length > 60 %}…{% endif %}</td>
                         <td>
@@ -74,7 +75,7 @@
                             </span>
                         </td>
                         <td class="text-muted" style="font-size:12px;white-space:nowrap;">
-                            {{ c[4] }}
+                            {{ c[5] }}
                         </td>
                     </tr>
                     {% endfor %}
